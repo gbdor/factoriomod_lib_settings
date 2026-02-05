@@ -37,6 +37,7 @@ This mod provides a simple, safe API for mod authors to expose their settings to
 - (How to modify other mod's settings)[doc/modify-settings.md]
 - (API reference)[doc/API.md]
 - (Usage examples)[doc/usage.md]
+- (Troubleshooting and FAQ)[doc/troubleshooting.md]
 
 
 ## How it works
@@ -47,57 +48,67 @@ This mod provides a simple, safe API for mod authors to expose their settings to
   - Automatically change the values or their settings
   - (optionally) Hides any settings taht have been modified
 
+### Understanding the Settings Stage
 
-### Priority
+Factorio processes settings in three sequential stages:
+
+1. **`settings.lua`**: Define your settings here
+2. **`settings-updates.lua`**: Expose settings and request modifications here
+3. **`settings-final-fixes.lua`**: Apply modifications here
+
+Settings Share uses this staged approach to ensure:
+- All settings are defined before exposure
+- All exposure happens before modifications are requested
+- All modifications are validated and applied in a deterministic order
+
+### Conflict Resolution
 
 When multiple mods try to modify the same setting, Settings Share uses a priority system:
 
 1. **Priority-based**: Lower priority numbers win (0 = highest priority)
-2. **Alphabetical tiebreak**: If priorities are equal, mods are sorted alphabetically by the engine
-3. **Concurrent access is logged**: If more than one mod tries to change a specific setting, the log file tells the whole story
+2. **Alphabetical tiebreak**: If priorities are equal, mods are sorted alphabetically for deterministic results
+3. **Last-write-wins**: The highest priority modification is applied
 
 Example:
 ```lua
--- Mod A (priority 100 (lowest), default)
-LIB.set_setting("target-mod", "power-multiplier", 2.0)
+-- Mod A (priority 100, default)
+LIB.set_setting("target-mod", "value", 10)
 
 -- Mod B (priority 50, higher priority)
-LIB.set_setting("target-mod", "power-multiplier", 3.0, {priority=50})
+LIB.set_setting("target-mod", "value", 20)
 
 -- Mod C (priority 50, same as B, but comes after alphabetically)
-LIB.set_setting("target-mod", "value", 0.5, {priority=50})
+LIB.set_setting("target-mod", "value", 30)
 
--- Result: 
---   * Mod C wins (priority 50, and "mod-c" > "mod-b" alphabetically)
---   * factorio logs tells the whole story
+-- Result: Mod C wins (priority 50, and "mod-c" > "mod-b" alphabetically)
 ```
 
-## Validation and Safety
+### Validation and Safety
 
 Settings Share provides multiple layers of safety:
 
-### 1. Explicit Opt-In
+#### 1. Explicit Opt-In
 Only settings that are explicitly exposed via `exposeSetting()` can be accessed. This prevents:
 - Accidental modification of internal settings
 - Access to sensitive configuration values
 - Unexpected behavior from undocumented settings
 
-### 2. Type Validation
+#### 2. Type Validation
 Settings Share validates values against:
 - **Minimum values**: Prevents values below `min_value`
 - **Maximum values**: Prevents values above `max_value`
-- **Allowed values**: Restricts to specific allowed options (those declared in settings.lua)
+- **Allowed values**: Restricts to specific allowed options
 - **Custom validators**: Your own validation logic
 
 Invalid modifications are rejected and logged.
 
-### 3. Read-Only Protection
+#### 3. Read-Only Protection
 Settings can be marked as `read_only = true` to:
 - Share information with other mods
 - Prevent any modifications
 - Useful for version numbers, capability flags, etc.
 
-### 4. Comprehensive Logging
+#### 4. Comprehensive Logging
 All modifications are logged with:
 - Which mod requested the change
 - What value was requested
@@ -106,126 +117,13 @@ All modifications are logged with:
 
 Check your `factorio-current.log` for detailed information.
 
-## Troubleshooting
 
-### "Setting not exposed for sharing"
-**Cause**: The target mod hasn't exposed this setting via `exposeSetting()`
 
-**Solutions**:
-- Check if the target mod uses Settings Share
-- Verify the setting name is correct (without mod prefix)
-- Contact the target mod author to request exposure
 
-### "Setting does not exist"
-**Cause**: The setting name is incorrect or doesn't exist in `settings.lua`
-
-**Solutions**:
-- Check your `settings.lua` for the exact setting name
-- Ensure you're using the setting name WITH the mod prefix in `exposeSetting()`
-- Ensure you're using the setting name WITHOUT the mod prefix in `set_setting()`
-
-### "Value not in allowed_values"
-**Cause**: The value you're trying to set isn't in the allowed list
-
-**Solutions**:
-- Check the exposed setting's `allowed_values` constraint
-- Use a value from the allowed list
-- Contact the owning mod author if you need additional values
-
-### "Setting is read-only"
-**Cause**: The setting is marked as read-only and cannot be modified
-
-**Solutions**:
-- This is intentional - the owning mod doesn't allow modifications
-- Use the setting's value for information only
-- Contact the owning mod author if you need write access
-
-### "Could not detect calling mod name"
-**Cause**: Settings Share couldn't determine which mod is calling it
-
-**Solutions**:
-- Ensure you're calling `require("__settings-share__/lib")` from a file in your mod
-- Don't call the API from inline scripts or data.lua directly
-- Call from `settings-updates.lua` or `settings-final-fixes.lua`
-
-### Modifications Not Applied
-**Cause**: Multiple possible issues
-
-**Solutions**:
-1. Check that you're calling `LIB.updateAllMySettings()` in `settings-final-fixes.lua`
-2. Verify your setting is exposed in `settings-updates.lua`
-3. Check `factorio-current.log` for rejection messages
-4. Ensure Settings Share is installed and enabled
-5. Verify the modifying mod has Settings Share as a dependency
-
-## Best Practices
-
-### For Mod Authors Exposing Settings
-
-1. **Only expose what's necessary**: Don't expose internal or debug settings
-2. **Document exposed settings**: Include in your mod description which settings are shareable
-3. **Use validation**: Always specify `min_value`, `max_value`, or `allowed_values`
-4. **Consider read-only**: Use `read_only = true` for informational settings
-5. **Test thoroughly**: Test with other mods that might modify your settings
-
-### For Mod Authors Modifying Settings
-
-1. **Use optional dependencies**: Always make target mods optional
-2. **Check mod presence**: Use `if mods["target-mod"]` before calling `set_setting()`
-3. **Use priorities wisely**: Only use high priority (low numbers) when necessary
-4. **Document your changes**: Note in your mod description which settings you modify
-5. **Respect read-only**: Don't try to force modifications of read-only settings
-6. **Provide configuration**: Let users disable your modifications if they want
-
-### For Players
-
-1. **Check mod descriptions**: See which mods use Settings Share
-2. **Review logs**: Check `factorio-current.log` for modification details
-3. **Report conflicts**: If mods conflict, report to both mod authors
-4. **Understand priorities**: Higher-priority mods (balance packs) should load after others
-
-## Compatibility
-
-- **Factorio Version**: 1.1+
-- **Save Compatibility**: Settings changes require a new game or restart
-- **Multiplayer**: Fully compatible, all players must have the same mods and settings
-- **Scenarios**: Compatible with all scenarios
-
-## Performance
-
-Settings Share operates only during the settings stage, which happens:
-- When starting a new game
-- When loading a save (for startup settings)
-- When changing mod settings (for runtime settings)
-
-There is **zero runtime performance impact** during gameplay.
-
-## FAQ
-
-**Q: Can I modify runtime or per-player settings?**  
-A: Currently, Settings Share focuses on startup settings. Runtime setting support may be added in the future.
-
-**Q: What happens if two mods have the same priority?**  
-A: Modifications are sorted alphabetically by mod name for deterministic behavior.
-
-**Q: Can I force a value regardless of what the player chooses?**  
-A: Yes, use `property = "forced_value"` to override the player's choice.
-
-**Q: Does this work with mod X?**  
-A: Settings Share works with any mod that explicitly exposes settings. Check the mod's description or contact the author.
-
-**Q: Can I modify hidden settings?**  
-A: Only if the owning mod explicitly exposes them via `exposeSetting()`.
-
-**Q: Is this compatible with mod configuration mods?**  
-A: Yes, Settings Share works alongside any mod configuration system.
-
-**Q: Can I see what mods modified what settings?**  
-A: Yes, check your `factorio-current.log` file for detailed modification logs.
 
 ## License
 
-GNU GPL v3 License - See LICENSE file for details
+MIT License - See LICENSE file for details
 
 ## Contributing
 
