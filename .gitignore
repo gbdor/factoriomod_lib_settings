@@ -1,0 +1,13 @@
+
+# Temp and backup files
+*.7z
+*.tmp
+*.bak
+
+
+# Parts of build process
+changes.txt
+
+
+# Release files
+lib-settings*.zip

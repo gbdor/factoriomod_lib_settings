@@ -1,0 +1,19 @@
+{
+  "name": "lib-settings",
+  "version": "0.0.1",
+  "title": "Settings lib",
+  "author": "gbd",
+  "description": "A framework for safely sharig settings across mods. Aims at allowing metamods or modpacks to configure underlying mods. Does nothing on its own",
+  "factorio_version": "2.0",
+  "dependencies":
+  [
+    "base >= 2.0.60",
+
+  ],
+  "package":
+  {
+    "scripts":
+    {
+    }
+  }
+}
