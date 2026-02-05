@@ -32,6 +32,84 @@ local settings_verbose = settings.startup[CONSTANTS.MOD_NAME .. "-verbose-loggin
 local L = settings_verbose and log or function() end
 local lib = {}
 
+
+-- ==============================================================================
+-- UTILITY FUNCTIONS FOR DEBUGGING
+-- ==============================================================================
+
+--- Get all exposed settings (for debugging)
+-- @return table - Registry of all exposed settings
+function lib.get_all_exposed_settings()
+  return get_registry()
+end
+
+--- Get all pending modifications (for debugging)
+-- @return table - All modification requests
+function lib.get_all_modifications()
+  return get_modifications()
+end
+
+--- Print statistics about settings sharing
+function lib.print_statistics()
+  local registry = get_registry()
+  local modifications = get_modifications()
+  
+  local total_exposed = 0
+  local total_modified = 0
+  local by_mod = {}
+  
+  for setting_name, meta in pairs(registry) do
+    total_exposed = total_exposed + 1
+    by_mod[meta.owner_mod] = (by_mod[meta.owner_mod] or 0) + 1
+    
+    if modifications[setting_name] and #modifications[setting_name] > 0 then
+      total_modified = total_modified + 1
+    end
+  end
+  
+  log("=== STATISTICS ===")
+  log("Total exposed settings: " .. total_exposed)
+  log("Settings with modifications: " .. total_modified)
+  log("Settings by mod:")
+  for mod, count in pairs(by_mod) do
+    log("  " .. mod .. ": " .. count .. " settings")
+  end
+end
+-- ==============================================================================
+-- INTERNAL HELPERS
+-- ==============================================================================
+
+
+--- @return string mod name of the caller
+local function detect_mod_name()
+
+  -- Method 1: Search package.loaded for calling file
+  -- Keys are in format: __mod-name__/path/to/file.lua
+  for key, _ in pairs(package.loaded) do
+    local mod_name = key:match("^__([^_]+)__/")
+    if mod_name and mod_name ~= CONSTANTS.MOD_NAME then
+      L(("Found mod name in package.loaded: %s"):format(mod_name))
+      return mod_name
+    end
+  end
+  
+  -- Method 2: Try debug.getinfo to find calling file
+  if debug and debug.getinfo then
+    local info = debug.getinfo(3, "S") -- Level 3 = caller of caller of this function
+    if info and info.source then
+      local mod_name = info.source:match("^@?__([^_/]+)__/")
+      if mod_name and mod_name ~= CONSTANTS.MOD_NAME then
+        L(("Found mod name in debug.getinfo: %s"):format(mod_name))
+        return mod_name
+      end
+    end
+  end
+  
+  error("Could not detect calling mod name. Ensure you're calling from settings-updates.lua or settings-final-fixes.lua")
+end
+
+
+
 -- ==============================================================================
 -- INTERNAL STORAGE
 -- ==============================================================================
@@ -47,38 +125,9 @@ local function get_modifications()
   return data.raw["settings-share-modifications"]
 end
 
--- ==============================================================================
--- MOD NAME DETECTION
--- ==============================================================================
--- Detects calling mod name from package.loaded or debug.getinfo
-
-local function detect_mod_name()
-  
-  -- Method 1: Search package.loaded for calling file
-  -- Keys are in format: __mod-name__/path/to/file.lua
-  for key, _ in pairs(package.loaded) do
-    local mod_name = key:match("^__([^_]+)__/")
-    if mod_name and mod_name ~= CONSTANTS.MOD_NAME then
-      return mod_name
-    end
-  end
-  
-  -- Method 2: Try debug.getinfo to find calling file
-  if debug and debug.getinfo then
-    local info = debug.getinfo(3, "S") -- Level 3 = caller of caller of this function
-    if info and info.source then
-      local mod_name = info.source:match("^@?__([^_/]+)__/")
-      if mod_name and mod_name ~= CONSTANTS.MOD_NAME then
-        return mod_name
-      end
-    end
-  end
-  
-  error("[settings-share] Could not detect calling mod name. Ensure you're calling from settings-updates.lua or settings-final-fixes.lua")
-end
 
 -- ==============================================================================
--- STAGE 2 API: EXPOSING SETTINGS (called in settings-updates.lua)
+-- STAGE 2 (settings-update) API: EXPOSING SETTINGS
 -- ==============================================================================
 
 --- Expose a setting for other mods to access and modify
@@ -86,11 +135,11 @@ end
 -- @param config table - Optional configuration
 --   - type: Setting type (auto-detected if not provided)
 --   - read_only: Prevent modifications (default: false)
---   - min_value: Minimum allowed value
+--   - min_value: Minimum allowed value (must be within declared settings min-max)
 --   - max_value: Maximum allowed value
---   - allowed_values: List of explicitly allowed values
+--   - allowed_values: List of explicitly allowed values (must be a subset of declared allowed values²)
 --   - validator: Custom validation function (value) -> bool, error_msg
---   - auto_hide_modified: Automatically hide setting if modified (default: false)
+--   - auto_hide_modified: Automatically hide setting if modified (default: true)
 function lib.exposeSetting(setting_name, config)
   config = config or {}
   
@@ -111,9 +160,12 @@ function lib.exposeSetting(setting_name, config)
   
   -- Validate setting exists
   if not setting_type or not data.raw[setting_type] or not data.raw[setting_type][full_name] then
-    error("[settings-share] Setting does not exist: " .. full_name .. 
+    error("Setting does not exist: " .. full_name .. 
           ". Make sure it's defined in settings.lua before calling exposeSetting() in settings-updates.lua")
   end
+
+
+  -- TODO: validate that min,max,allowed_values are consistent with data type and within settings declaration
   
   -- Store metadata in registry
   registry[full_name] = {
@@ -124,13 +176,13 @@ function lib.exposeSetting(setting_name, config)
     max_value = config.max_value,
     allowed_values = config.allowed_values,
     validator = config.validator,
-    auto_hide_modified = config.auto_hide_modified or false,
+    auto_hide_modified = config.auto_hide_modified or true,
     original_hidden = data.raw[setting_type][full_name].hidden or false,
-    last_modified_by = nil,
+    last_modified_by = {},
     version = 1
   }
   
-  log("[settings-share] Exposed: " .. full_name .. " (type: " .. setting_type .. ")")
+  log("Exposed: " .. full_name .. " (type: " .. setting_type .. ")")
 end
 
 -- ==============================================================================
@@ -142,7 +194,6 @@ end
 -- @param setting_name string - Setting name WITHOUT mod prefix
 -- @param value any - New value to set
 -- @param options table - Optional configuration
---   - property: Which property to modify (default: "default_value")
 --   - priority: Priority for conflict resolution (default: 100, lower = higher priority)
 function lib.set_setting(owner_mod_name, setting_name, value, options)
   options = options or {}
@@ -156,28 +207,25 @@ function lib.set_setting(owner_mod_name, setting_name, value, options)
   
   -- Validate setting is exposed
   if not meta then
-    error("[settings-share] Setting not exposed for sharing: " .. full_name .. 
+    error("Setting not exposed for sharing: " .. full_name .. 
           ". The owning mod (" .. owner_mod_name .. ") must call exposeSetting() first.")
   end
   
   -- Check read-only protection
   if meta.read_only then
-    error("[settings-share] Setting is read-only: " .. full_name)
+    error("Setting is read-only: " .. full_name)
   end
   
-  -- Determine property to modify
-  local property = options.property or "default_value"
   
   -- Store modification request
   modifications[full_name] = modifications[full_name] or {}
   table.insert(modifications[full_name], {
     requesting_mod = requesting_mod,
-    property = property,
     value = value,
     priority = options.priority or 100
   })
   
-  log("[settings-share] Modification requested: " .. full_name .. "." .. property .. 
+  log("Modification requested: " .. full_name .. 
       " = " .. tostring(value) .. " (by " .. requesting_mod .. ", priority " .. (options.priority or 100) .. ")")
 end
 
@@ -219,15 +267,15 @@ function lib.updateAllMySettings()
           
           if valid then
             -- Apply the modification
-            setting[mod_req.property] = mod_req.value
-            meta.last_modified_by = mod_req.requesting_mod
+            setting.value = mod_req.value
+            meta.last_modified_by[#meta.last_modified_by+1] = mod_req.requesting_mod
             meta.version = meta.version + 1
             applied_count = applied_count + 1
             
-            log("[settings-share] ✓ Applied: " .. setting_name .. "." .. mod_req.property .. 
+            log("✓ Applied: " .. setting_name .. ".value"
                 " = " .. tostring(mod_req.value) .. " (by " .. mod_req.requesting_mod .. ")")
           else
-            log("[settings-share] ✗ REJECTED: " .. setting_name .. " by " .. mod_req.requesting_mod .. 
+            log("✗ REJECTED: " .. setting_name .. " by " .. mod_req.requesting_mod .. 
                 " - " .. err)
           end
         end
@@ -235,7 +283,7 @@ function lib.updateAllMySettings()
         -- Auto-hide setting if it was modified and auto_hide_modified is enabled
         if applied_count > 0 and meta.auto_hide_modified then
           setting.hidden = true
-          log("[settings-share] Auto-hidden: " .. setting_name .. " (was modified)")
+          log("Auto-hidden: " .. setting_name .. " (was modified)")
           settings_modified = true
         end
         
@@ -247,7 +295,7 @@ function lib.updateAllMySettings()
   end
   
   if settings_modified then
-    log("[settings-share] Finished updating settings for mod: " .. mod_name)
+    log("Finished updating settings for mod: " .. mod_name)
   end
 end
 
@@ -307,14 +355,10 @@ end
 
 --- Validate a value against the setting's constraints
 -- @param meta table - Setting metadata from registry
--- @param property string - Property being modified
 -- @param value any - Value to validate
 -- @return boolean, string - (is_valid, error_message)
-function lib._validate_value(meta, property, value)
-  -- Only validate value properties (default_value, forced_value)
-  if property ~= "default_value" and property ~= "forced_value" then
-    return true -- Don't validate other properties like "hidden", "order", etc.
-  end
+function lib._validate_value(meta, value)
+
   
   -- Type-specific validation
   if meta.type == "bool-setting" then
@@ -371,47 +415,6 @@ function lib._validate_value(meta, property, value)
   return true
 end
 
--- ==============================================================================
--- UTILITY FUNCTIONS FOR DEBUGGING
--- ==============================================================================
 
---- Get all exposed settings (for debugging)
--- @return table - Registry of all exposed settings
-function lib.get_all_exposed_settings()
-  return get_registry()
-end
-
---- Get all pending modifications (for debugging)
--- @return table - All modification requests
-function lib.get_all_modifications()
-  return get_modifications()
-end
-
---- Print statistics about settings sharing
-function lib.print_statistics()
-  local registry = get_registry()
-  local modifications = get_modifications()
-  
-  local total_exposed = 0
-  local total_modified = 0
-  local by_mod = {}
-  
-  for setting_name, meta in pairs(registry) do
-    total_exposed = total_exposed + 1
-    by_mod[meta.owner_mod] = (by_mod[meta.owner_mod] or 0) + 1
-    
-    if modifications[setting_name] and #modifications[setting_name] > 0 then
-      total_modified = total_modified + 1
-    end
-  end
-  
-  log("[settings-share] === STATISTICS ===")
-  log("[settings-share] Total exposed settings: " .. total_exposed)
-  log("[settings-share] Settings with modifications: " .. total_modified)
-  log("[settings-share] Settings by mod:")
-  for mod, count in pairs(by_mod) do
-    log("[settings-share]   " .. mod .. ": " .. count .. " settings")
-  end
-end
 
 return lib
