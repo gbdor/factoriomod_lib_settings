@@ -53,7 +53,7 @@ awesome-mod/
   "author": "You",
   "dependencies": [
     "base >= 1.1",
-    "? settings-share >= 1.0.0"
+    "? lib-settings >= 1.0.0"
   ]
 }
 ```
@@ -90,8 +90,8 @@ data:extend({
 
 ### settings-updates.lua (STAGE 2: Expose settings)
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Expose the feature toggle
   LIB.exposeSetting("enable-feature")
@@ -112,8 +112,8 @@ end
 
 ### settings-final-fixes.lua (STAGE 3: Apply modifications)
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- One line does everything!
   LIB.updateAllMySettings()
@@ -141,7 +141,7 @@ balance-tweaker/
   "author": "You",
   "dependencies": [
     "base >= 1.1",
-    "? settings-share >= 1.0.0",
+    "? lib-settings >= 1.0.0",
     "? awesome-mod",
     "? another-mod"
   ]
@@ -150,8 +150,8 @@ balance-tweaker/
 
 ### settings-updates.lua (STAGE 2: Modify other mods)
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Modify awesome-mod if present
   if mods["awesome-mod"] then
@@ -204,8 +204,8 @@ data:extend({
 
 #### power-mod/settings-updates.lua (STAGE 2)
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   LIB.exposeSetting("generation-multiplier", {
     min_value = 0.1,
@@ -218,8 +218,8 @@ end
 
 #### power-mod/settings-final-fixes.lua (STAGE 3)
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   LIB.updateAllMySettings()
 end
 ```
@@ -228,8 +228,8 @@ end
 
 #### balance-pack/settings-updates.lua (STAGE 2)
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Apply balance changes to power-mod
   if mods["power-mod"] then
@@ -247,8 +247,8 @@ end
 
 #### compatibility-fix/settings-updates.lua (STAGE 2)
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Fix: When both power-mod and balance-pack are active,
   -- we need a specific multiplier value
@@ -319,8 +319,8 @@ Sometimes when a balance pack or compatibility mod changes a setting, you want t
 
 ### advanced-mod/settings-updates.lua
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- This setting will automatically be hidden if any mod modifies it
   LIB.exposeSetting("balance-value", {
@@ -353,8 +353,8 @@ If you need more control than `updateAllMySettings()` provides:
 
 ### custom-mod/settings-final-fixes.lua
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Use the iterator for fine-grained control
   for setting_name, modifications in LIB.get_my_exposed_settings() do
@@ -408,8 +408,8 @@ data:extend({
 
 ### version-mod/settings-updates.lua
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Expose as read-only so other mods can check compatibility
   LIB.exposeSetting("api-version", {
@@ -420,7 +420,7 @@ end
 
 ### other-mod/settings-updates.lua
 ```lua
-if mods["settings-share"] and mods["version-mod"] then
+if mods["lib-settings"] and mods["version-mod"] then
   -- Can READ the setting from data.raw
   local api_version = data.raw["string-setting"]["version-mod-api-version"]
   if api_version then
@@ -463,8 +463,8 @@ LIB.set_setting("target", "value", 30, {priority = 50})
 
 ### physics-mod/settings-updates.lua
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   LIB.exposeSetting("jump-height", {
     min_value = 0.1,
@@ -495,8 +495,8 @@ end
 Add this to your `settings-final-fixes.lua`:
 
 ```lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Print statistics before applying
   LIB.print_statistics()
@@ -520,9 +520,9 @@ end
 
 Look for lines like:
 ```
-[settings-share] Exposed: awesome-mod-power-multiplier (type: double-setting)
-[settings-share] Modification requested: awesome-mod-power-multiplier.default_value = 2.5 (by balance-tweaker, priority 100)
-[settings-share] ✓ Applied: awesome-mod-power-multiplier.default_value = 2.5 (by balance-tweaker)
+[lib-settings] Exposed: awesome-mod-power-multiplier (type: double-setting)
+[lib-settings] Modification requested: awesome-mod-power-multiplier.default_value = 2.5 (by balance-tweaker, priority 100)
+[lib-settings] ✓ Applied: awesome-mod-power-multiplier.default_value = 2.5 (by balance-tweaker)
 ```
 
 ---
@@ -575,7 +575,7 @@ A balance mod that adjusts multiple other mods:
 -- balance-overhaul/info.json
 {
   "dependencies": [
-    "? settings-share >= 1.0.0",
+    "? lib-settings >= 1.0.0",
     "? bobs-mods",
     "? angels-mods",
     "? space-exploration"
@@ -583,8 +583,8 @@ A balance mod that adjusts multiple other mods:
 }
 
 -- balance-overhaul/settings-updates.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Adjust Bob's Mods if present
   if mods["bobplates"] then
@@ -623,8 +623,8 @@ data:extend({
 })
 
 -- difficulty-presets/settings-updates.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   local preset = settings.startup["difficulty-presets-mode"].value
   
@@ -656,8 +656,8 @@ Fix incompatibilities between mods:
 
 ```lua
 -- compatibility-fixes/settings-updates.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Fix: Mod A and Mod B conflict when both enable certain features
   if mods["mod-a"] and mods["mod-b"] then
@@ -713,8 +713,8 @@ data:extend({
 })
 
 -- super-mod/settings-updates.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Expose all settings with appropriate validation
   LIB.exposeSetting("enable-advanced-mode")
@@ -742,8 +742,8 @@ if mods["settings-share"] then
 end
 
 -- super-mod/settings-final-fixes.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   LIB.updateAllMySettings()
 end
 ```

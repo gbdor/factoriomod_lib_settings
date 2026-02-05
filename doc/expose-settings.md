@@ -53,8 +53,8 @@ end
 
 ```lua
 -- your-mod/settings-final-fixes.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- One line does everything!
   LIB.updateAllMySettings()
@@ -200,7 +200,7 @@ A balance mod that adjusts multiple other mods:
 -- balance-overhaul/info.json
 {
   "dependencies": [
-    "? settings-share >= 1.0.0",
+    "? lib-settings >= 1.0.0",
     "? bobs-mods",
     "? angels-mods",
     "? space-exploration"
@@ -208,8 +208,8 @@ A balance mod that adjusts multiple other mods:
 }
 
 -- balance-overhaul/settings-updates.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Adjust Bob's Mods if present
   if mods["bobplates"] then
@@ -248,8 +248,8 @@ data:extend({
 })
 
 -- difficulty-presets/settings-updates.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   local preset = settings.startup["difficulty-presets-mode"].value
   
@@ -281,8 +281,8 @@ Fix incompatibilities between mods:
 
 ```lua
 -- compatibility-fixes/settings-updates.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Fix: Mod A and Mod B conflict when both enable certain features
   if mods["mod-a"] and mods["mod-b"] then
@@ -338,8 +338,8 @@ data:extend({
 })
 
 -- super-mod/settings-updates.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Expose all settings with appropriate validation
   LIB.exposeSetting("enable-advanced-mode")
@@ -367,8 +367,8 @@ if mods["settings-share"] then
 end
 
 -- super-mod/settings-final-fixes.lua
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   LIB.updateAllMySettings()
 end
 ```
@@ -480,7 +480,7 @@ Check your `factorio-current.log` for detailed information.
 **Cause**: Settings Share couldn't determine which mod is calling it
 
 **Solutions**:
-- Ensure you're calling `require("__settings-share__/lib")` from a file in your mod
+- Ensure you're calling `require("__lib-settings__/lib")` from a file in your mod
 - Don't call the API from inline scripts or data.lua directly
 - Call from `settings-updates.lua` or `settings-final-fixes.lua`
 
@@ -570,21 +570,3 @@ Contributions welcome! Please:
 2. Create a feature branch
 3. Submit a pull request with tests
 
-## Support
-
-- **Bug Reports**: [GitHub Issues](https://github.com/yourusername/settings-share/issues)
-- **Mod Portal**: [Settings Share on Factorio Mod Portal](https://mods.factorio.com/mod/settings-share)
-- **Forum Thread**: [Factorio Forums Discussion](https://forums.factorio.com)
-
-## Changelog
-
-### 1.0.0 (Initial Release)
-- Core API implementation
-- Value validation
-- Priority-based conflict resolution
-- Comprehensive logging
-- Auto-detection of calling mod
-
----
-
-**Made with ❤️ for the Factorio modding community**

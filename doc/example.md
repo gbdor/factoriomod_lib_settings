@@ -1,12 +1,12 @@
 # Complete Working Example: Three-Mod System
 
-This example demonstrates the complete flow with three mods that interact via settings-share.
+This example demonstrates the complete flow with three mods that interact via lib-settings.
 
 ## Directory Structure
 
 ```
 factorio/mods/
-├── settings-share/
+├── lib-settings/
 │   ├── info.json
 │   └── lib.lua
 │
@@ -39,7 +39,7 @@ factorio/mods/
   "factorio_version": "1.1",
   "dependencies": [
     "base >= 1.1",
-    "? settings-share >= 1.0.0"
+    "? lib-settings >= 1.0.0"
   ]
 }
 ```
@@ -94,8 +94,8 @@ data:extend({
 -- STAGE 2: Expose settings to other mods (opt-in)
 -- ============================================================================
 
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Expose power multiplier with validation
   LIB.exposeSetting("multiplier", {
@@ -113,7 +113,7 @@ if mods["settings-share"] then
     auto_hide_modified = true  -- Hide from user if another mod changes it
   })
   
-  log("[power-generator] Settings exposed via settings-share")
+  log("[power-generator] Settings exposed via lib-settings")
 end
 
 -- At this point:
@@ -128,8 +128,8 @@ end
 -- STAGE 3: Apply modifications from other mods
 -- ============================================================================
 
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- This single line does everything:
   -- 1. Fetches all modification requests for our settings
@@ -162,7 +162,7 @@ end
   "factorio_version": "1.1",
   "dependencies": [
     "base >= 1.1",
-    "? settings-share >= 1.0.0",
+    "? lib-settings >= 1.0.0",
     "? power-generator"
   ]
 }
@@ -174,8 +174,8 @@ end
 -- STAGE 2: Request modifications to other mods' settings
 -- ============================================================================
 
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Only modify if power-generator is present
   if mods["power-generator"] then
@@ -222,7 +222,7 @@ end
   "factorio_version": "1.1",
   "dependencies": [
     "base >= 1.1",
-    "? settings-share >= 1.0.0",
+    "? lib-settings >= 1.0.0",
     "? power-generator",
     "? balance-overhaul"
   ]
@@ -235,8 +235,8 @@ end
 -- STAGE 2: Fix compatibility issues with higher priority
 -- ============================================================================
 
-if mods["settings-share"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Detect if both power-generator and balance-overhaul are present
   if mods["power-generator"] and mods["balance-overhaul"] then
@@ -321,7 +321,7 @@ data.raw["string-setting"]["power-generator-mode"] = {
 
 **State after Stage 2:**
 ```lua
-data.raw["settings-share-registry"] = {
+data.raw["lib-settings-registry"] = {
   ["power-generator-multiplier"] = {
     owner_mod = "power-generator",
     type = "double-setting",
@@ -342,7 +342,7 @@ data.raw["settings-share-registry"] = {
   }
 }
 
-data.raw["settings-share-modifications"] = {
+data.raw["lib-settings-modifications"] = {
   ["power-generator-multiplier"] = {
     {requesting_mod = "balance-overhaul", value = 0.75, priority = 50},
     {requesting_mod = "compatibility-patch", value = 0.85, priority = 10}
@@ -418,16 +418,16 @@ data.raw["string-setting"]["power-generator-mode"] = {
 ## Log Output
 
 ```
-[power-generator] Settings exposed via settings-share
+[power-generator] Settings exposed via lib-settings
 [balance-overhaul] Adjusting power-generator settings for balance
 [balance-overhaul] Modifications requested with priority 50
 [compatibility-patch] Detected power-generator + balance-overhaul
 [compatibility-patch] Applying compatibility fix
 [compatibility-patch] Multiplier adjusted to 0.85 for compatibility
-[settings-share] ✓ Applied: power-generator-multiplier.default_value = 0.85 (by compatibility-patch)
-[settings-share] ✓ Applied: power-generator-nerf-solar.default_value = true (by balance-overhaul)
-[settings-share] ✓ Applied: power-generator-mode.default_value = hard (by balance-overhaul)
-[settings-share] Auto-hidden: power-generator-mode (was modified)
+[lib-settings] ✓ Applied: power-generator-multiplier.default_value = 0.85 (by compatibility-patch)
+[lib-settings] ✓ Applied: power-generator-nerf-solar.default_value = true (by balance-overhaul)
+[lib-settings] ✓ Applied: power-generator-mode.default_value = hard (by balance-overhaul)
+[lib-settings] Auto-hidden: power-generator-mode (was modified)
 [power-generator] Settings finalized
 ```
 
@@ -460,4 +460,4 @@ The "Mode" setting is hidden because:
 6. **Validation**: Automatic checks prevent invalid values
 7. **Logging**: Everything is logged for debugging
 
-This example shows the complete real-world usage of settings-share!
+This example shows the complete real-world usage of lib-settings!

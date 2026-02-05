@@ -1,5 +1,5 @@
 -- ==============================================================================
--- settings-share/lib.lua - Cross-mod settings access library
+-- lib-settings/lib.lua - Cross-mod settings access library
 -- ==============================================================================
 -- 
 -- EXECUTION ORDER UNDERSTANDING:
@@ -75,6 +75,9 @@ function lib.print_statistics()
     log("  " .. mod .. ": " .. count .. " settings")
   end
 end
+
+
+
 -- ==============================================================================
 -- INTERNAL HELPERS
 -- ==============================================================================
@@ -116,13 +119,13 @@ end
 -- We use data.raw custom tables since we can't use globals in settings stage
 
 local function get_registry()
-  data.raw["settings-share-registry"] = data.raw["settings-share-registry"] or {}
-  return data.raw["settings-share-registry"]
+  data.raw[CONSTANTS.REGISTRY] = data.raw[CONSTANTS.REGISTRY] or {}
+  return data.raw[CONSTANTS.REGISTRY]
 end
 
 local function get_modifications()
-  data.raw["settings-share-modifications"] = data.raw["settings-share-modifications"] or {}
-  return data.raw["settings-share-modifications"]
+  data.raw[CONSTANTS.MODIFS] = data.raw[CONSTANTS.MODIFS] or {}
+  return data.raw[CONSTANTS.MODIFS]
 end
 
 

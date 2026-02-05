@@ -3,8 +3,8 @@
 In your `settings-updates.lua`
 
 ```lua
-if mods["settings-share"] and mods["other-mod"] then
-  local LIB = require("__settings-share__/lib")
+if mods["lib-settings"] and mods["other-mod"] then
+  local LIB = require("__lib-settings__/lib")
   
   -- Modify another mod's setting
   LIB.set_setting("other-mod", "enable-feature", false)

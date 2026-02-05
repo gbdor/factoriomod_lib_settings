@@ -86,7 +86,7 @@ Load order: `base → mod-a → mod-b → mod-c`
 ```lua
 -- Storage in data.raw (persists across all stages)
 
-data.raw["settings-share-registry"] = {
+data.raw["lib-settings-registry"] = {
   ["mod-name-setting-name"] = {
     owner_mod = "mod-name",
     type = "bool-setting",
@@ -103,7 +103,7 @@ data.raw["settings-share-registry"] = {
   -- ... more settings
 }
 
-data.raw["settings-share-modifications"] = {
+data.raw["lib-settings-modifications"] = {
   ["mod-name-setting-name"] = {
     {
       requesting_mod = "other-mod",
@@ -192,7 +192,7 @@ END OF STAGE 1:
 ├──────────────────────────────────────────────────────┤
 │ File: power-gen/settings-updates.lua                 │
 │                                                       │
-│ local LIB = require("__settings-share__/lib")       │
+│ local LIB = require("__lib-settings__/lib")       │
 │                                                       │
 │ LIB.exposeSetting("multiplier", {                   │
 │   min_value = 0.1,                                   │
@@ -207,7 +207,7 @@ END OF STAGE 1:
 │ 5. Store in registry:                                │
 │                                                       │
 │ STATE AFTER:                                         │
-│ data.raw["settings-share-registry"] = {             │
+│ data.raw["lib-settings-registry"] = {             │
 │   ["power-gen-multiplier"] = {                      │
 │     owner_mod = "power-gen",                         │
 │     type = "double-setting",                         │
@@ -223,7 +223,7 @@ END OF STAGE 1:
 ├──────────────────────────────────────────────────────┤
 │ File: balance-mod/settings-updates.lua               │
 │                                                       │
-│ local LIB = require("__settings-share__/lib")       │
+│ local LIB = require("__lib-settings__/lib")       │
 │                                                       │
 │ LIB.set_setting("power-gen", "multiplier", 0.75, {  │
 │   priority = 50                                      │
@@ -237,7 +237,7 @@ END OF STAGE 1:
 │ 5. Store modification request:                       │
 │                                                       │
 │ STATE AFTER:                                         │
-│ data.raw["settings-share-modifications"] = {        │
+│ data.raw["lib-settings-modifications"] = {        │
 │   ["power-gen-multiplier"] = {                      │
 │     {                                                │
 │       requesting_mod = "balance-mod",                │
@@ -254,7 +254,7 @@ END OF STAGE 1:
 ├──────────────────────────────────────────────────────┤
 │ File: compat-fix/settings-updates.lua                │
 │                                                       │
-│ local LIB = require("__settings-share__/lib")       │
+│ local LIB = require("__lib-settings__/lib")       │
 │                                                       │
 │ if mods["power-gen"] and mods["balance-mod"] then   │
 │   LIB.set_setting("power-gen", "multiplier", 0.85, {│
@@ -267,7 +267,7 @@ END OF STAGE 1:
 │ 2. Store another modification request                │
 │                                                       │
 │ STATE AFTER:                                         │
-│ data.raw["settings-share-modifications"] = {        │
+│ data.raw["lib-settings-modifications"] = {        │
 │   ["power-gen-multiplier"] = {                      │
 │     {                                                │
 │       requesting_mod = "balance-mod",                │
@@ -298,7 +298,7 @@ END OF STAGE 2:
 ├──────────────────────────────────────────────────────┤
 │ File: power-gen/settings-final-fixes.lua             │
 │                                                       │
-│ local LIB = require("__settings-share__/lib")       │
+│ local LIB = require("__lib-settings__/lib")       │
 │ LIB.updateAllMySettings()                           │
 │                                                       │
 │ INTERNAL EXECUTION:                                  │

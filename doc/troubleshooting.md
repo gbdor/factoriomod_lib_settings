@@ -37,7 +37,7 @@
 **Cause**: Settings Share couldn't determine which mod is calling it
 
 **Solutions**:
-- Ensure you're calling `require("__settings-share__/lib")` from a file in your mod
+- Ensure you're calling `require("__lib-settings__/lib")` from a file in your mod
 - Don't call the API from inline scripts or data.lua directly
 - Call from `settings-updates.lua` or `settings-final-fixes.lua`
 
